@@ -86,11 +86,11 @@ export default function PostFlashInstructions() {
             </div>
 
             <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
-              <p className="text-xs text-blue-800">
+              <div className="text-xs text-blue-800">
                 <strong>Tip:</strong> If the captive portal doesn't open automatically, navigate to 
                 <Badge variant="outline" className="mx-1 text-xs">192.168.4.1</Badge>
                 in your browser.
-              </p>
+              </div>
             </div>
           </div>
         </div>
@@ -98,3 +98,4 @@ export default function PostFlashInstructions() {
     </Card>
   );
 }
+
