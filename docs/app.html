@@ -783,33 +783,50 @@
             // Simulate device detection process
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // For demo purposes, generate a realistic MAC address for ESP32-S3
-            const demoMacs = [
-              '24:6F:28:AB:CD:EF', // ESP32-S3-WROOM-1
-              '24:0A:C4:12:34:56', // ESP32-S3-WROOM-1 variant
-              '30:AE:A4:78:90:12', // ESP32-DevKitC-V4
-              '34:85:18:DE:AD:BE'  // ESP32-S3 variant
-            ];
+            // Get device identification from backend
+            addLog(`MAC Address: ${macAddr}`, 'success');
             
-            // Select a demo MAC address
-            macAddr = demoMacs[Math.floor(Math.random() * demoMacs.length)];
-            
-            // Use device database to identify device type
-            const deviceInfo = identifyDeviceType(macAddr);
-            if (deviceInfo) {
-              deviceType = deviceInfo.type;
-              chipName = deviceInfo.chipFamily;
+            try {
+              // Try current host first, fallback to localhost:5000
+              let response = await fetch('/api/devices/identify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ macAddress: macAddr }),
+              });
               
-              addLog(`MAC Address: ${macAddr}`, 'success');
-              addLog(`Device Type: ${deviceType}`, 'success');
-              addLog(`Chip Family: ${chipName}`, 'info');
-              addLog(`Flash Size: ${deviceInfo.flashSize}`, 'info');
-              addLog(`Sensors: ${deviceInfo.sensors.join(', ')}`, 'info');
-              addLog(`Description: ${deviceInfo.description}`, 'debug');
-            } else {
-              addLog(`MAC Address: ${macAddr}`, 'success');
-              addLog('Device type could not be determined from MAC address', 'warning');
-              chipName = 'ESP32-S3-WROOM-1';
+              if (!response.ok && response.status === 404) {
+                response = await fetch('http://localhost:5000/api/devices/identify', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ macAddress: macAddr }),
+                });
+              }
+              
+              if (response.ok) {
+                const deviceInfo = await response.json();
+                deviceType = deviceInfo.deviceType;
+                chipName = deviceInfo.chipFamily;
+                
+                addLog(`Device Type: ${deviceType}`, 'success');
+                addLog(`Chip Family: ${chipName}`, 'info');
+                addLog(`Flash Size: ${deviceInfo.flashSize}`, 'info');
+                addLog(`Sensors: ${deviceInfo.sensors.join(', ')}`, 'info');
+                addLog(`Description: ${deviceInfo.description}`, 'debug');
+                
+                if (deviceInfo.isRegistered) {
+                  addLog('Device is registered in system', 'success');
+                } else {
+                  addLog('Device not registered - using generic configuration', 'warning');
+                }
+              } else {
+                throw new Error('Backend identification failed');
+              }
+            } catch (error) {
+              addLog(`Backend identification error: ${error.message}`, 'warning');
+              // Fallback to generic device info
+              deviceType = 'ESP32-Generic';
+              chipName = 'ESP32';
+              addLog('Using generic device configuration', 'info');
             }
             
             addLog('Device ready for firmware flashing', 'success');
@@ -913,10 +930,23 @@
           updateProgress(0, 'Preparing to erase flash...');
           addLog('Confirmed: Starting complete flash erase', 'warning');
           
-          // Close our connection to allow ESP Web Tools to take over
-          if (esptool && esptool.port) {
-            await esptool.port.close();
-            addLog('Serial connection closed for ESP Web Tools', 'info');
+          // Stop monitoring and prepare for erase operation
+          stopLogMonitoring();
+          
+          // Properly disconnect current connection
+          if (esptool) {
+            try {
+              if (esptool.isWebSerial && esptool.port) {
+                await esptool.port.close();
+                addLog('Serial connection closed for erase operation', 'info');
+              } else {
+                await esptool.disconnect();
+                addLog('ESPTool disconnected for erase operation', 'info');
+              }
+              esptool = null;
+            } catch (e) {
+              addLog(`Warning during disconnect: ${e.message}`, 'warning');
+            }
           }
           
           // Use ESP Web Tools for erasing
@@ -934,8 +964,12 @@
           await loader.erase_flash();
           
           updateProgress(100, 'Flash erase completed');
-          addLog('Flash memory completely erased', 'success');
-          addLog('Device is now ready for new firmware installation', 'info');
+          addLog('✓ Flash memory completely erased', 'success');
+          addLog('Device has been reset to factory defaults', 'success');
+          
+          // Device will need to be reconnected after erase
+          updateConnectionStatus(false);
+          addLog('Device disconnected - reconnection required', 'info');
           
           // Show success
           setTimeout(() => {
@@ -949,6 +983,10 @@
         } finally {
           isFlashing = false;
           flashBtn.disabled = false;
+          
+          setTimeout(() => {
+            progressSection.classList.add('hidden');
+          }, 3000);
         }
       }
 
@@ -977,7 +1015,12 @@
             addLog(`Fetching firmware from backend...`, 'info');
             
             try {
-              const response = await fetch('/api/firmware/releases');
+              // Try the current host first, fallback to explicit port if needed
+              let response = await fetch('/api/firmware/releases');
+              if (!response.ok && response.status === 404) {
+                // Try the backend server directly
+                response = await fetch('http://localhost:5000/api/firmware/releases');
+              }
               if (!response.ok) {
                 throw new Error(`Backend fetch failed: ${response.status} ${response.statusText}`);
               }
