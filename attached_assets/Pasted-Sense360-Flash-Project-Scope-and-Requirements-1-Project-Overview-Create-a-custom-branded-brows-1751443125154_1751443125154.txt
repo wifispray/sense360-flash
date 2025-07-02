@@ -1,0 +1,73 @@
+Sense360 Flash - Project Scope and Requirements
+
+1. Project Overview
+
+Create a custom-branded, browser-based ESPHome flashing tool:
+	•	Based on ESP Web Tools (re-branded).
+	•	Firmware management through manual uploads to GitHub Releases.
+	•	Support for multiple firmware versions with clear version selection.
+	•	Comprehensive user documentation.
+	•	Detailed, concise admin documentation (setup, deployment, management).
+
+2. Branding & Appearance
+	•	Tool Name: Sense360 Flash
+	•	Visual Style: Minimalist, clean, and intuitive (similar to Google).
+	•	Colors: Professional, clean, primarily white with accent colors for buttons/actions.
+	•	Font: Google Sans or similar modern, readable sans-serif.
+	•	Logo: To be provided separately (placeholder allowed initially).
+
+3. Functionality & User Experience
+	•	Firmware Management:
+	•	Binaries manually uploaded as assets in GitHub Releases.
+	•	Users select from predefined firmware binaries (multiple version support).
+	•	Flashing Process:
+	•	Simple “one-click” installation after firmware selection.
+	•	Built-in captive portal for initial Wi-Fi provisioning post-flashing (ESPHome captive portal feature).
+	•	Error Handling:
+	•	Include troubleshooting steps for common issues:
+	•	Device not detected (serial port issues).
+	•	Browser permissions errors.
+	•	Flashing errors and retry procedures.
+
+4. User Workflow
+
+Step-by-step user experience:
+	1.	User connects the ESP32-based Sense360 device via USB.
+	2.	Opens Sense360 Flash web app in browser.
+	3.	Browser prompts for USB device selection.
+	4.	User selects desired firmware version from available options.
+	5.	Clicks “Flash” to initiate the installation.
+	6.	After flashing completes, device reboots and provides a Wi-Fi hotspot.
+	7.	User connects to the captive portal Wi-Fi hotspot to configure local Wi-Fi credentials.
+
+5. Deployment & Maintenance
+	•	Deployment:
+	•	Manual file upload initially.
+	•	Hosted via GitHub Pages for simplicity.
+	•	Future instructions for deploying to a Shopify-hosted domain.
+	•	Deployment Instructions:
+	•	Step-by-step, concise, clear guide for manual uploads to GitHub Pages.
+	•	Directory structure clearly defined.
+	•	Instructions for linking firmware binaries hosted on GitHub Releases.
+
+6. Technology & Tools
+	•	ESP Web Tools (https://github.com/esphome/esp-web-tools) as the foundation.
+	•	Framework: Prefer modern, responsive HTML/CSS/JS framework (React/Vue or plain HTML/JS as appropriate).
+	•	Fully responsive and browser-compatible (desktop primarily, mobile-friendly optional).
+
+7. Documentation
+	•	Provided in Markdown format hosted on GitHub.
+	•	PDF export and simple webpage versions also provided.
+	•	Documentation includes:
+	•	End-user instructions (firmware flashing, captive portal setup).
+	•	Admin documentation (firmware upload, GitHub setup, and GitHub Pages deployment).
+	•	Clear troubleshooting guides.
+
+8. Project Constraints
+	•	No specific timeline.
+	•	Initial focus on simplicity and robustness.
+	•	No immediate budget or hosting constraints.
+
+⸻
+
+This scope provides clear direction, structure, and specific details for developing, deploying, and documenting the Sense360 Flash tool effectively.
