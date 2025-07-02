@@ -35,25 +35,22 @@ export default function Home() {
   };
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 via-white to-gray-50">
-      {/* Status indicator */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-          <div className="flex items-center justify-center">
-            <div className="flex items-center text-sm text-gray-600">
-              <div className={`w-2 h-2 rounded-full mr-2 ${
-                connectionStatus === 'connected' ? 'bg-green-500' : 
-                connectionStatus === 'connecting' || connectionStatus === 'flashing' ? 'bg-yellow-500' : 
-                'bg-gray-400'
-              }`} />
-              {connectionStatus === 'connected' ? 'Device Connected' : 
-               connectionStatus === 'connecting' ? 'Connecting...' :
-               connectionStatus === 'flashing' ? 'Flashing...' :
-               'Not Connected'}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-6xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex items-center space-x-4">
+            {/* Logo */}
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Microchip className="text-white text-lg" size={20} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-800">Sense360 Flash</h1>
+              <p className="text-sm text-gray-600">ESP32 Firmware Flashing Tool</p>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">

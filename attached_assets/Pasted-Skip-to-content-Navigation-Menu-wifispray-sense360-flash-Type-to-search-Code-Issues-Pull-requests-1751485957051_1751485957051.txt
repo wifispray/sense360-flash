@@ -1,0 +1,69 @@
+Skip to content
+Navigation Menu
+wifispray
+sense360-flash
+
+Type / to search
+Code
+Issues
+Pull requests
+Actions
+Projects
+Wiki
+Security
+Insights
+Settings
+Deploy to GitHub Pages
+Update app.html #11
+Jobs
+Run details
+Annotations
+1 error
+build-and-deploy
+failed 3 minutes ago in 20s
+Search logs
+1s
+0s
+5s
+11s
+Run npm ci
+npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+
+added 484 packages, and audited 485 packages in 10s
+
+64 packages are looking for funding
+  run `npm fund` for details
+
+9 vulnerabilities (1 low, 8 moderate)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+0s
+Run vite build
+  vite build
+  shell: /usr/bin/bash -e {0}
+/home/runner/work/_temp/167222f1-0fbd-4802-aace-adda3ef6cd22.sh: line 1: vite: command not found
+Error: Process completed with exit code 127.
+0s
+0s
+0s
+Post job cleanup.
+/usr/bin/git version
+git version 2.49.0
+Temporarily overriding HOME='/home/runner/work/_temp/ae62d354-ca45-4625-a707-b5ff972791c7' before making global git config changes
+Adding repository directory to the temporary git global config as a safe directory
+/usr/bin/git config --global --add safe.directory /home/runner/work/sense360-flash/sense360-flash
+/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+http.https://github.com/.extraheader
+/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+0s
+Cleaning up orphan processes

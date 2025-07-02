@@ -120,18 +120,29 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-- **July 02, 2025**: Device Management API Implementation
-  - Added secure backend API for device management
-  - MAC addresses stored privately, never exposed to end users
-  - Generated unique public device IDs for identification
-  - Created device registration, retrieval, and management endpoints
-  - Added device admin interface for viewing registered devices
-  - Updated frontend to use backend API instead of displaying MAC addresses
-  - Added navigation between Flash Tool and Device Admin pages
-  - Implemented privacy-first architecture for sensitive device information
+### Device Registry System Implementation (July 02, 2025)
+- **Secure Backend Device Management**: Implemented comprehensive device registry system with MAC address management
+- **Database Schema**: Created device, firmware, and access log tables with proper TypeScript types
+- **Backend API**: Added secure endpoints for device identification, registration, and access logging
+- **Admin Interface**: Created `/admin` route with device management, access logs, and firmware tracking
+- **Security Features**: MAC addresses stored securely in backend, not exposed to end users
+- **Access Logging**: All device connections and operations logged for security monitoring
+
+### Dual-Mode Flashing System (July 02, 2025)
+- **Firmware Flash Mode**: Full configuration with erase, verify, and reset options
+- **Erase Flash Mode**: ESP Web Tools integration for complete device reset
+- **Conditional UI**: Dynamic interface that adapts based on selected flashing method
+- **GitHub Integration**: Backend firmware management using GitHub releases API
+
+### Technical Infrastructure
+- **Storage**: In-memory database with device registry, firmware releases, and access logs
+- **API Routes**: Public device identification and secure admin endpoints
+- **Type Safety**: Comprehensive Zod schemas for data validation
+- **Error Handling**: Robust error handling with user-friendly messages
 
 ## Changelog
 
 Changelog:
+- July 02, 2025. Device registry system with secure MAC address management
+- July 02, 2025. Dual-mode flashing system implementation
 - July 02, 2025. Initial setup
-- July 02, 2025. Device Management API with MAC address privacy

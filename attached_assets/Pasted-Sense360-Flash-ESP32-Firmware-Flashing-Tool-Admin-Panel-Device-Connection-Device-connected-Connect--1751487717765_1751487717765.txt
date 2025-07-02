@@ -1,0 +1,99 @@
+Sense360 Flash
+ESP32 Firmware Flashing Tool
+
+Admin Panel
+Device Connection
+Device connected
+Connect your ESP32-based Sense360 device via USB cable to begin flashing firmware.
+
+Disconnect
+Device Information
+Device Type
+-
+Chip Family
+ESP32
+MAC Address
+XX:XX:XX:XX:XX:XX
+Flash Size
+16MB (Estimated)
+Available Sensors
+Air Quality Sensors (Unknown Configuration)
+Description
+Device configuration could not be determined
+Connection Requirements
+Chrome, Edge, or Opera browser
+USB cable connected to device
+Device in bootloader mode
+Firmware Selection
+Flashing Method
+
+Firmware Flash
+Flash new firmware to device with full configuration options
+
+Erase Flash Only
+Completely erase device flash memory (factory reset)
+
+Air Quality Monitor v1.0.0
+Stable
+849 KB
+Official Sense360 firmware with comprehensive air quality monitoring
+
+Features: PM2.5, PM10, CO2, Temperature, Humidity, Wi-Fi Provisioning
+
+Custom Firmware
+Advanced
+No file chosen
+Upload your own compiled firmware binary
+
+Supports: .bin files up to 8MB for ESP32-S3
+Flash Options
+
+Erase entire flash before writing
+
+Verify flash after writing
+
+Reset device after flashing
+ Flash Firmware
+Device Logs
+Clear
+Auto-scroll: ON
+# Sense360 Flash Tool - Device Logs
+# Connect your device to see live logs...
+[21:21:06] Web Serial API supported. Ready to connect to ESP32 devices.
+[21:21:06] Sense360 Flash Tool initialized
+[21:21:06] Connect your ESP32 device to begin flashing
+[21:21:06] Firmware flash mode selected
+[21:21:07] Requesting device connection...
+[21:21:07] Using Web Serial API for device connection...
+[21:21:10] Serial port opened successfully
+[21:21:10] Device connected successfully!
+[21:21:10] Detecting device information...
+[21:21:10] Attempting to read device information...
+[21:21:11] MAC Address: XX:XX:XX:XX:XX:XX
+[21:21:11] Using generic device configuration
+[21:21:11] Device ready for firmware flashing
+[21:21:15] Starting firmware flash process...
+[21:21:15] Firmware: stable
+[21:21:15] Options: Erase=true, Verify=true, Reset=true
+[21:21:15] Fetching firmware from backend...
+[21:21:15] Backend unavailable: Failed to fetch
+[21:21:15] Using direct GitHub firmware download
+[21:21:15] Downloading firmware from: GitHub/wifispray/sense360-flash/releases/download/v1.0.0/air_quality_monitor.ota.bin
+[21:21:15] Download error: Failed to fetch
+[21:21:15] Flash failed: Failed to fetch
+Troubleshooting
+Device Not Detected
+• Ensure you're using Chrome, Edge, or Opera browser
+• Check USB cable connection
+• Try a different USB port
+• Install device drivers if needed
+Flashing Failed
+• Hold the BOOT button while connecting
+• Ensure stable USB connection
+• Try a different USB cable
+• Restart your browser
+© 2024 Sense360. Built with ESP Web Tools.
+
+Documentation
+Support
+GitHub
