@@ -1,89 +1,38 @@
-import { users, type User, type InsertUser } from "@shared/schema";
-import { type Device, type InsertDevice, type FirmwareRelease, type InsertFirmwareRelease, type DeviceAccessLog, type InsertDeviceAccessLog, type DeviceIdentification } from "@shared/device-schema";
+import { users, type User, type InsertUser, type Device, type InsertDevice, type PublicDevice } from "@shared/schema";
+import { nanoid } from 'nanoid';
+
+// modify the interface with any CRUD methods
+// you might need
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
-  // Device management
-  getDeviceByMac(macAddress: string): Promise<Device | undefined>;
-  registerDevice(device: InsertDevice): Promise<Device>;
-  updateDeviceLastSeen(macAddress: string): Promise<void>;
-  getAllDevices(): Promise<Device[]>;
-  updateDevice(id: number, updates: Partial<InsertDevice>): Promise<Device | undefined>;
-  deactivateDevice(id: number): Promise<boolean>;
-  
-  // Firmware releases
-  getAllFirmwareReleases(): Promise<FirmwareRelease[]>;
-  getActiveFirmwareReleases(): Promise<FirmwareRelease[]>;
-  createFirmwareRelease(release: InsertFirmwareRelease): Promise<FirmwareRelease>;
-  updateFirmwareRelease(id: number, updates: Partial<InsertFirmwareRelease>): Promise<FirmwareRelease | undefined>;
-  
-  // Device access logging
-  logDeviceAccess(log: InsertDeviceAccessLog): Promise<DeviceAccessLog>;
-  getDeviceAccessLogs(macAddress?: string, limit?: number): Promise<DeviceAccessLog[]>;
+  // Device management methods
+  registerDevice(device: InsertDevice): Promise<PublicDevice>;
+  getDeviceById(deviceId: string): Promise<PublicDevice | undefined>;
+  getDeviceByMacAddress(macAddress: string): Promise<Device | undefined>;
+  updateDeviceLastSeen(deviceId: string): Promise<void>;
+  getAllActiveDevices(): Promise<PublicDevice[]>;
+  deactivateDevice(deviceId: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
-  private devices: Map<string, Device>;
-  private firmwareReleases: Map<number, FirmwareRelease>;
-  private accessLogs: DeviceAccessLog[];
-  
-  private currentUserId: number;
-  private currentDeviceId: number;
-  private currentFirmwareId: number;
-  private currentLogId: number;
+  private devices: Map<number, Device>;
+  private devicesByMac: Map<string, Device>;
+  private devicesByPublicId: Map<string, Device>;
+  currentUserId: number;
+  currentDeviceId: number;
 
   constructor() {
     this.users = new Map();
     this.devices = new Map();
-    this.firmwareReleases = new Map();
-    this.accessLogs = [];
-    
+    this.devicesByMac = new Map();
+    this.devicesByPublicId = new Map();
     this.currentUserId = 1;
     this.currentDeviceId = 1;
-    this.currentFirmwareId = 1;
-    this.currentLogId = 1;
-    
-    // Initialize with default firmware release
-    this.initializeDefaultData();
-  }
-  
-  private async initializeDefaultData() {
-    // Add default firmware release
-    const defaultFirmware: FirmwareRelease = {
-      id: this.currentFirmwareId++,
-      version: "v1.0.0",
-      title: "Sense360 Air Quality Monitor v1.0.0",
-      status: "stable",
-      releaseDate: new Date("2024-12-01"),
-      description: "Initial stable release with comprehensive air quality monitoring support for ESP32 devices.",
-      downloadUrl: "https://github.com/wifispray/sense360-flash/releases/download/v1.0.0/air_quality_monitor.ota.bin",
-      size: "1.2 MB",
-      features: ["Temperature monitoring", "Humidity detection", "PM2.5 particle sensing", "Wi-Fi connectivity", "Web interface", "OTA updates"],
-      compatibility: "ESP32, ESP32-S2, ESP32-S3, ESP32-C3",
-      isActive: true,
-      createdAt: new Date(),
-    };
-    this.firmwareReleases.set(defaultFirmware.id, defaultFirmware);
-    
-    // Add sample registered device
-    const sampleDevice: Device = {
-      id: this.currentDeviceId++,
-      macAddress: "30:AE:A4:78:90:12",
-      deviceType: "ESP32-DevKitC-V4",
-      chipFamily: "ESP32",
-      flashSize: "4MB",
-      sensors: ["Temperature", "Humidity", "PM2.5"],
-      description: "Standard ESP32 with basic air quality monitoring",
-      isActive: true,
-      registeredAt: new Date(),
-      lastSeenAt: new Date(),
-      notes: "Sample registered device for testing",
-    };
-    this.devices.set(sampleDevice.macAddress, sampleDevice);
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -104,113 +53,80 @@ export class MemStorage implements IStorage {
   }
 
   // Device management methods
-  async getDeviceByMac(macAddress: string): Promise<Device | undefined> {
-    return this.devices.get(macAddress);
-  }
+  async registerDevice(insertDevice: InsertDevice): Promise<PublicDevice> {
+    // Check if device already exists by MAC address
+    const existingDevice = this.devicesByMac.get(insertDevice.macAddress);
+    if (existingDevice) {
+      // Update existing device and mark as active
+      existingDevice.chipType = insertDevice.chipType;
+      existingDevice.flashSize = insertDevice.flashSize || existingDevice.flashSize;
+      existingDevice.deviceType = insertDevice.deviceType || existingDevice.deviceType;
+      existingDevice.lastSeen = new Date();
+      existingDevice.isActive = true;
+      
+      return this.deviceToPublic(existingDevice);
+    }
 
-  async registerDevice(insertDevice: InsertDevice): Promise<Device> {
+    // Create new device
     const id = this.currentDeviceId++;
+    const deviceId = nanoid(12); // Generate public device ID
     const device: Device = {
-      ...insertDevice,
       id,
-      isActive: insertDevice.isActive ?? true,
-      registeredAt: new Date(),
-      lastSeenAt: new Date(),
-      notes: insertDevice.notes ?? null,
+      deviceId,
+      macAddress: insertDevice.macAddress,
+      chipType: insertDevice.chipType,
+      flashSize: insertDevice.flashSize || null,
+      deviceType: insertDevice.deviceType || null,
+      lastSeen: new Date(),
+      isActive: true,
     };
-    this.devices.set(device.macAddress, device);
-    return device;
+
+    this.devices.set(id, device);
+    this.devicesByMac.set(insertDevice.macAddress, device);
+    this.devicesByPublicId.set(deviceId, device);
+
+    return this.deviceToPublic(device);
   }
 
-  async updateDeviceLastSeen(macAddress: string): Promise<void> {
-    const device = this.devices.get(macAddress);
+  async getDeviceById(deviceId: string): Promise<PublicDevice | undefined> {
+    const device = this.devicesByPublicId.get(deviceId);
+    return device ? this.deviceToPublic(device) : undefined;
+  }
+
+  async getDeviceByMacAddress(macAddress: string): Promise<Device | undefined> {
+    return this.devicesByMac.get(macAddress);
+  }
+
+  async updateDeviceLastSeen(deviceId: string): Promise<void> {
+    const device = this.devicesByPublicId.get(deviceId);
     if (device) {
-      device.lastSeenAt = new Date();
-      this.devices.set(macAddress, device);
+      device.lastSeen = new Date();
     }
   }
 
-  async getAllDevices(): Promise<Device[]> {
-    return Array.from(this.devices.values());
+  async getAllActiveDevices(): Promise<PublicDevice[]> {
+    return Array.from(this.devices.values())
+      .filter(device => device.isActive)
+      .map(device => this.deviceToPublic(device));
   }
 
-  async updateDevice(id: number, updates: Partial<InsertDevice>): Promise<Device | undefined> {
-    const devices = Array.from(this.devices.entries());
-    for (const [macAddress, device] of devices) {
-      if (device.id === id) {
-        const updatedDevice: Device = { ...device, ...updates };
-        this.devices.set(macAddress, updatedDevice);
-        return updatedDevice;
-      }
+  async deactivateDevice(deviceId: string): Promise<void> {
+    const device = this.devicesByPublicId.get(deviceId);
+    if (device) {
+      device.isActive = false;
     }
-    return undefined;
   }
 
-  async deactivateDevice(id: number): Promise<boolean> {
-    const devices = Array.from(this.devices.entries());
-    for (const [macAddress, device] of devices) {
-      if (device.id === id) {
-        device.isActive = false;
-        this.devices.set(macAddress, device);
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // Firmware release methods
-  async getAllFirmwareReleases(): Promise<FirmwareRelease[]> {
-    return Array.from(this.firmwareReleases.values());
-  }
-
-  async getActiveFirmwareReleases(): Promise<FirmwareRelease[]> {
-    return Array.from(this.firmwareReleases.values()).filter(release => release.isActive);
-  }
-
-  async createFirmwareRelease(insertRelease: InsertFirmwareRelease): Promise<FirmwareRelease> {
-    const id = this.currentFirmwareId++;
-    const release: FirmwareRelease = {
-      ...insertRelease,
-      id,
-      createdAt: new Date(),
+  // Helper method to convert Device to PublicDevice (removes MAC address)
+  private deviceToPublic(device: Device): PublicDevice {
+    return {
+      deviceId: device.deviceId,
+      chipType: device.chipType,
+      flashSize: device.flashSize,
+      deviceType: device.deviceType,
+      lastSeen: device.lastSeen,
+      isActive: device.isActive,
     };
-    this.firmwareReleases.set(id, release);
-    return release;
-  }
-
-  async updateFirmwareRelease(id: number, updates: Partial<InsertFirmwareRelease>): Promise<FirmwareRelease | undefined> {
-    const release = this.firmwareReleases.get(id);
-    if (release) {
-      const updatedRelease: FirmwareRelease = { ...release, ...updates };
-      this.firmwareReleases.set(id, updatedRelease);
-      return updatedRelease;
-    }
-    return undefined;
-  }
-
-  // Device access logging methods
-  async logDeviceAccess(insertLog: InsertDeviceAccessLog): Promise<DeviceAccessLog> {
-    const id = this.currentLogId++;
-    const log: DeviceAccessLog = {
-      ...insertLog,
-      id,
-      accessedAt: new Date(),
-    };
-    this.accessLogs.push(log);
-    return log;
-  }
-
-  async getDeviceAccessLogs(macAddress?: string, limit: number = 100): Promise<DeviceAccessLog[]> {
-    let logs = this.accessLogs;
-    
-    if (macAddress) {
-      logs = logs.filter(log => log.macAddress === macAddress);
-    }
-    
-    // Sort by most recent first
-    logs.sort((a, b) => b.accessedAt.getTime() - a.accessedAt.getTime());
-    
-    return logs.slice(0, limit);
   }
 }
 
