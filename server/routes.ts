@@ -153,6 +153,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Serve the standalone HTML flashing tool
+  app.get("/flash", (req: Request, res: Response) => {
+    res.sendFile(require("path").join(process.cwd(), "docs", "app.html"));
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
+
