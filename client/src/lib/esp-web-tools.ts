@@ -17,10 +17,27 @@ export class ESPWebToolsManager {
   }
 
   private checkWebSerial(): boolean {
+    console.log('=== Web Serial API Check ===');
+    console.log('User Agent:', navigator.userAgent);
+    console.log('Protocol:', window.location.protocol);
+    console.log('Host:', window.location.host);
+    console.log('Navigator serial:', (navigator as any).serial);
+    console.log('Has serial property:', 'serial' in navigator);
+    
     if (!('serial' in navigator)) {
-      console.warn('Web Serial API not supported');
+      console.error('Web Serial API not supported - requires Chrome 89+, Edge 89+, or Opera 75+');
       return false;
     }
+    
+    if (window.location.protocol !== 'https:' && 
+        window.location.hostname !== 'localhost' && 
+        !window.location.hostname.includes('127.0.0.1') &&
+        !window.location.hostname.includes('replit.dev')) {
+      console.error('Web Serial API requires HTTPS or localhost/development environment');
+      return false;
+    }
+    
+    console.log('Web Serial API is supported and available');
     return true;
   }
 
@@ -170,4 +187,5 @@ export class ESPWebToolsManager {
 }
 
 export const espWebTools = new ESPWebToolsManager();
+
 
