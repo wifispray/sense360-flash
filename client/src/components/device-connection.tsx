@@ -138,7 +138,10 @@ export default function DeviceConnection({
               Connect your ESP32-based Sense360 device via USB cable to begin flashing firmware.
             </p>
             <Button
-              onClick={handleConnect}
+              onClick={(e) => {
+                console.log('Raw button click event:', e);
+                handleConnect();
+              }}
               disabled={isConnecting || deviceInfo.connected}
               className={`flex items-center space-x-2 transition-colors ${
                 deviceInfo.connected 
@@ -183,4 +186,5 @@ export default function DeviceConnection({
     </Card>
   );
 }
+
 
