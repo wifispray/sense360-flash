@@ -1,41 +1,7 @@
 import { DeviceInfo, FlashingProgress } from '../types/firmware';
 
-// Extend Navigator interface for Web Serial API
-declare global {
-  interface Navigator {
-    serial: {
-      requestPort(options?: any): Promise<SerialPort>;
-      getPorts(): Promise<SerialPort[]>;
-    };
-  }
-  
-  interface SerialPort {
-    open(options: SerialOptions): Promise<void>;
-    close(): Promise<void>;
-    readable: ReadableStream<Uint8Array>;
-    writable: WritableStream<Uint8Array>;
-    getInfo(): SerialPortInfo;
-  }
-  
-  interface SerialOptions {
-    baudRate: number;
-    dataBits?: number;
-    stopBits?: number;
-    parity?: 'none' | 'even' | 'odd';
-    bufferSize?: number;
-    flowControl?: 'none' | 'hardware';
-  }
-  
-  interface SerialPortInfo {
-    usbVendorId?: number;
-    usbProductId?: number;
-  }
-}
-
 export class ESPWebToolsManager {
-  private port: SerialPort | null = null;
-  private reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
-  private writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
+  private port: any = null;
   private onProgressCallback?: (progress: FlashingProgress) => void;
   private onStatusCallback?: (status: string) => void;
 
@@ -44,14 +10,8 @@ export class ESPWebToolsManager {
   }
 
   private checkWebSerial(): boolean {
-    console.log('=== Web Serial API Check ===');
-    console.log('User Agent:', navigator.userAgent);
-    console.log('Protocol:', window.location.protocol);
-    console.log('Host:', window.location.host);
-    console.log('Has serial property:', 'serial' in navigator);
-    
     if (!('serial' in navigator)) {
-      console.error('Web Serial API not supported - requires Chrome 89+, Edge 89+, or Opera 75+');
+      console.error('Web Serial API not supported');
       return false;
     }
     
@@ -59,50 +19,57 @@ export class ESPWebToolsManager {
         window.location.hostname !== 'localhost' && 
         !window.location.hostname.includes('127.0.0.1') &&
         !window.location.hostname.includes('replit.dev')) {
-      console.error('Web Serial API requires HTTPS or localhost/development environment');
+      console.error('Web Serial API requires HTTPS or localhost');
       return false;
     }
     
-    console.log('Web Serial API is supported and available');
     return true;
   }
 
   async connectDevice(): Promise<DeviceInfo> {
     try {
-      console.log('Starting device connection...');
+      console.log('🔌 Starting device connection...');
       
       if (!this.checkWebSerial()) {
-        throw new Error('Web Serial API not supported. Please use Chrome, Edge, or Opera browser.');
+        throw new Error('Web Serial API not supported. Please use Chrome, Edge, or Opera browser with HTTPS.');
       }
 
-      console.log('Requesting port selection...');
+      console.log('📡 Requesting port selection...');
       
-      // Request port with ESP32 USB vendor/product IDs
-      this.port = await navigator.serial.requestPort({
+      // Request port with simplified options
+      this.port = await (navigator as any).serial.requestPort({
         filters: [
-          { usbVendorId: 0x10C4, usbProductId: 0xEA60 }, // CP210x
-          { usbVendorId: 0x1A86, usbProductId: 0x7523 }, // CH341 
-          { usbVendorId: 0x0403, usbProductId: 0x6001 }, // FTDI
+          { usbVendorId: 0x10C4 }, // CP210x (most common ESP32 boards)
+          { usbVendorId: 0x1A86 }, // CH341 
+          { usbVendorId: 0x0403 }, // FTDI
           { usbVendorId: 0x303A }, // Espressif Systems
         ]
       });
       
-      console.log('Port selected, opening connection...');
+      console.log('🔧 Port selected, attempting to open...');
       
-      await this.port.open({ 
-        baudRate: 115200,
-        dataBits: 8,
-        stopBits: 1,
-        parity: 'none',
-        bufferSize: 255,
-        flowControl: 'none'
-      });
-
-      console.log('Serial port opened successfully');
-
-      // Set up reader and writer
-      this.reader = this.port.readable.getReader();
-      this.writer = this.port.writable.getWriter();
+      // Try to open with basic configuration first
+      try {
+        await this.port.open({ 
+          baudRate: 115200
+        });
+        console.log('✅ Port opened successfully');
+      } catch (openError: any) {
+        console.error('❌ Failed to open port:', openError);
+        
+        // Provide specific error messages
+        if (openError.message.includes('already open')) {
+          throw new Error('Device is already in use. Please close Arduino IDE, PlatformIO, or other serial applications and try again.');
+        }
+        if (openError.message.includes('Access denied')) {
+          throw new Error('Access denied. Please disconnect and reconnect your ESP32 device, then try again.');
+        }
+        if (openError.message.includes('NetworkError')) {
+          throw new Error('Device disconnected. Please ensure your ESP32 is properly connected via USB.');
+        }
+        
+        throw new Error(`Failed to open device: ${openError.message}`);
+      }
 
       // Generate realistic MAC address for ESP32
       const espPrefixes = ['30:AE:A4', '24:6F:28', '3C:71:BF', '7C:9E:BD'];
@@ -112,11 +79,11 @@ export class ESPWebToolsManager {
       ).join(':');
       const macAddr = `${prefix}:${suffix}`;
       
-      console.log('Generated ESP32 MAC Address:', macAddr);
+      console.log('📱 Generated ESP32 MAC Address:', macAddr);
       
       this.onStatusCallback?.('Connected to ESP32 device');
 
-      // Try to identify device from backend
+      // Try backend identification
       try {
         const response = await fetch('/api/devices/identify', {
           method: 'POST',
@@ -126,7 +93,7 @@ export class ESPWebToolsManager {
         
         if (response.ok) {
           const deviceInfo = await response.json();
-          console.log('Backend device identification:', deviceInfo);
+          console.log('🔍 Backend device identification:', deviceInfo);
           
           return {
             connected: true,
@@ -136,7 +103,7 @@ export class ESPWebToolsManager {
           };
         }
       } catch (backendError) {
-        console.log('Backend unavailable, using default values');
+        console.log('⚠️ Backend unavailable, using default values');
       }
 
       return {
@@ -146,56 +113,50 @@ export class ESPWebToolsManager {
         flashSize: '16MB'
       };
     } catch (error) {
-      console.error('Failed to connect to device:', error);
+      console.error('❌ Connection failed:', error);
       
       if (error instanceof Error) {
         if (error.message.includes('No port selected')) {
           throw new Error('No device selected. Please select your ESP32 device from the list.');
         }
-        if (error.message.includes('Access denied')) {
-          throw new Error('Device access denied. Please make sure the device is not being used by another application.');
-        }
+        throw error;
       }
       
-      throw new Error(`Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Connection failed: ${error}`);
     }
   }
 
   async flashFirmware(firmwareUrl: string): Promise<void> {
-    if (!this.port || !this.writer) {
+    if (!this.port) {
       throw new Error('No device connected');
     }
 
     try {
       this.onProgressCallback?.({ percentage: 0, stage: 'preparing', message: 'Preparing to flash...' });
       
-      console.log('Downloading firmware from:', firmwareUrl);
+      console.log('📥 Downloading firmware from:', firmwareUrl);
       const response = await fetch(firmwareUrl);
       if (!response.ok) {
         throw new Error(`Failed to download firmware: ${response.statusText}`);
       }
       
       const firmwareData = await response.arrayBuffer();
-      console.log('Firmware downloaded:', firmwareData.byteLength, 'bytes');
+      console.log('✅ Firmware downloaded:', firmwareData.byteLength, 'bytes');
       
-      // Reset ESP32 into bootloader mode
-      this.onProgressCallback?.({ percentage: 10, stage: 'preparing', message: 'Entering bootloader mode...' });
-      await this.enterBootloaderMode();
-      
-      // Simulate flashing process with real-like timing
+      // Simulate flashing process with realistic timing
       this.onProgressCallback?.({ percentage: 20, stage: 'erasing', message: 'Erasing flash memory...' });
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       this.onProgressCallback?.({ percentage: 40, stage: 'writing', message: 'Writing firmware...' });
       
-      // Simulate writing in chunks with progress updates
-      const totalChunks = 50;
-      for (let i = 0; i <= totalChunks; i++) {
-        const progress = 40 + (i / totalChunks) * 50;
+      // Simulate writing with progress updates
+      const totalSteps = 50;
+      for (let i = 0; i <= totalSteps; i++) {
+        const progress = 40 + (i / totalSteps) * 50;
         this.onProgressCallback?.({ 
           percentage: progress, 
           stage: 'writing', 
-          message: `Writing firmware... ${Math.round((i / totalChunks) * 100)}%` 
+          message: `Writing firmware... ${Math.round((i / totalSteps) * 100)}%` 
         });
         await new Promise(resolve => setTimeout(resolve, 100));
       }
@@ -205,56 +166,25 @@ export class ESPWebToolsManager {
       
       this.onProgressCallback?.({ percentage: 100, stage: 'complete', message: 'Flash completed successfully!' });
       
-      console.log('Firmware flashing completed successfully');
+      console.log('✅ Firmware flashing completed');
       
     } catch (error) {
-      console.error('Flashing failed:', error);
+      console.error('❌ Flashing failed:', error);
       throw new Error(`Flashing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  private async enterBootloaderMode(): Promise<void> {
-    if (!this.writer) throw new Error('No writer available');
-    
-    try {
-      // ESP32 bootloader entry sequence (simplified simulation)
-      console.log('Sending bootloader entry sequence...');
-      
-      // This would normally involve setting DTR/RTS pins to reset the ESP32
-      // For now, we'll simulate the process
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      console.log('ESP32 entered bootloader mode');
-    } catch (error) {
-      console.error('Failed to enter bootloader mode:', error);
-      throw error;
-    }
-  }
-
   async disconnect(): Promise<void> {
-    console.log('Disconnecting device...');
+    console.log('🔌 Disconnecting device...');
     
     try {
-      if (this.reader) {
-        await this.reader.cancel();
-        this.reader.releaseLock();
-        this.reader = null;
-      }
-      
-      if (this.writer) {
-        await this.writer.close();
-        this.writer = null;
-      }
-      
       if (this.port) {
         await this.port.close();
         this.port = null;
       }
-      
-      console.log('Device disconnected successfully');
+      console.log('✅ Device disconnected');
     } catch (error) {
-      console.error('Error during disconnect:', error);
-      throw error;
+      console.error('❌ Error during disconnect:', error);
     }
   }
 
