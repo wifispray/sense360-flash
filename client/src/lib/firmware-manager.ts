@@ -1,126 +1,188 @@
-import type { FirmwareVersion } from '@/types/firmware';
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { z } from "zod";
+import { storage } from "./storage";
+import { insertDeviceSchema } from "@shared/schema";
 
-export class FirmwareManager {
-  private readonly githubRepo = import.meta.env.VITE_GITHUB_REPO || 'sense360/firmware';
-  private readonly githubToken = import.meta.env.VITE_GITHUB_TOKEN;
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Device management API routes
+  // All routes prefixed with /api
 
-  async getFirmwareVersions(): Promise<FirmwareVersion[]> {
+  // Register/update device - accepts MAC address privately, returns public device ID
+  app.post("/api/devices/register", async (req, res) => {
     try {
-      // For demo purposes, return static firmware versions
-      // In production, this would fetch from GitHub Releases API
-      const mockVersions: FirmwareVersion[] = [
-        {
-          version: 'v2.1.3',
-          title: 'Sense360 Firmware v2.1.3',
-          status: 'stable',
-          releaseDate: 'March 15, 2024',
-          description: 'Enhanced Wi-Fi stability, improved sensor accuracy, and bug fixes.',
-          size: '1.2 MB',
-          features: ['Wi-Fi Stability', 'Sensor Accuracy', 'Bug Fixes'],
-          compatibility: 'ESP32, ESP32-S2, ESP32-C3',
-          downloadUrl: '/api/firmware/sense360-v2.1.3.bin'
-        },
-        {
-          version: 'v2.1.2',
-          title: 'Sense360 Firmware v2.1.2',
-          status: 'previous',
-          releaseDate: 'February 28, 2024',
-          description: 'Power consumption optimizations and OTA update improvements.',
-          size: '1.1 MB',
-          features: ['Power Optimization', 'OTA Updates', 'Performance'],
-          compatibility: 'ESP32, ESP32-S2',
-          downloadUrl: '/api/firmware/sense360-v2.1.2.bin'
-        },
-        {
-          version: 'v2.2.0-beta',
-          title: 'Sense360 Firmware v2.2.0-beta',
-          status: 'beta',
-          releaseDate: 'March 20, 2024',
-          description: 'New features: Bluetooth LE support, enhanced API endpoints (experimental).',
-          size: '1.3 MB',
-          features: ['Bluetooth LE', 'Enhanced API', 'New Sensors'],
-          compatibility: 'ESP32 only',
-          downloadUrl: '/api/firmware/sense360-v2.2.0-beta.bin'
-        }
-      ];
-
-      return mockVersions;
-
-      // Production implementation would be:
-      /*
-      const headers: Record<string, string> = {
-        'Accept': 'application/vnd.github.v3+json',
-      };
+      const deviceData = insertDeviceSchema.parse(req.body);
+      const publicDevice = await storage.registerDevice(deviceData);
       
-      if (this.githubToken) {
-        headers['Authorization'] = `token ${this.githubToken}`;
-      }
-
-      const response = await fetch(`https://api.github.com/repos/${this.githubRepo}/releases`, {
-        headers
+      res.json({
+        success: true,
+        device: publicDevice,
+        message: "Device registered successfully"
       });
+    } catch (error) {
+      console.error("Device registration error:", error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof z.ZodError ? "Invalid device data" : "Registration failed",
+        details: error instanceof z.ZodError ? error.errors : undefined
+      });
+    }
+  });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch releases: ${response.statusText}`);
+  // Get device information by public device ID (no MAC address exposed)
+  app.get("/api/devices/:deviceId", async (req, res) => {
+    try {
+      const { deviceId } = req.params;
+      const device = await storage.getDeviceById(deviceId);
+      
+      if (!device) {
+        return res.status(404).json({
+          success: false,
+          error: "Device not found"
+        });
       }
 
-      const releases = await response.json();
+      await storage.updateDeviceLastSeen(deviceId);
       
-      return releases.map((release: any) => ({
-        version: release.tag_name,
-        title: release.name || `Sense360 Firmware ${release.tag_name}`,
-        status: release.prerelease ? 'beta' : 'stable',
-        releaseDate: new Date(release.published_at).toLocaleDateString(),
-        description: release.body || 'No description available',
-        size: this.calculateSize(release.assets),
-        features: this.extractFeatures(release.body),
-        compatibility: this.extractCompatibility(release.body),
-        downloadUrl: release.assets.find((asset: any) => asset.name.endsWith('.bin'))?.browser_download_url
-      })).filter((fw: FirmwareVersion) => fw.downloadUrl);
-      */
+      res.json({
+        success: true,
+        device
+      });
     } catch (error) {
-      console.error('Failed to fetch firmware versions:', error);
-      throw new Error('Failed to load firmware versions');
+      console.error("Get device error:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to retrieve device"
+      });
     }
-  }
+  });
 
-  private calculateSize(assets: any[]): string {
-    const binAsset = assets.find(asset => asset.name.endsWith('.bin'));
-    if (binAsset && binAsset.size) {
-      const sizeInMB = (binAsset.size / (1024 * 1024)).toFixed(1);
-      return `${sizeInMB} MB`;
+  // Get all active devices (admin endpoint - no MAC addresses)
+  app.get("/api/devices", async (req, res) => {
+    try {
+      const devices = await storage.getAllActiveDevices();
+      res.json({
+        success: true,
+        devices,
+        count: devices.length
+      });
+    } catch (error) {
+      console.error("Get devices error:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to retrieve devices"
+      });
     }
-    return 'Unknown';
-  }
+  });
 
-  private extractFeatures(body: string): string[] {
-    // Simple feature extraction from release notes
-    const features = [];
-    if (body.toLowerCase().includes('wifi') || body.toLowerCase().includes('wi-fi')) {
-      features.push('Wi-Fi Improvements');
-    }
-    if (body.toLowerCase().includes('sensor')) {
-      features.push('Sensor Updates');
-    }
-    if (body.toLowerCase().includes('bug') || body.toLowerCase().includes('fix')) {
-      features.push('Bug Fixes');
-    }
-    if (body.toLowerCase().includes('bluetooth') || body.toLowerCase().includes('ble')) {
-      features.push('Bluetooth Support');
-    }
-    return features.length > 0 ? features : ['General Improvements'];
-  }
+  // Update device last seen timestamp
+  app.patch("/api/devices/:deviceId/ping", async (req, res) => {
+    try {
+      const { deviceId } = req.params;
+      const device = await storage.getDeviceById(deviceId);
+      
+      if (!device) {
+        return res.status(404).json({
+          success: false,
+          error: "Device not found"
+        });
+      }
 
-  private extractCompatibility(body: string): string {
-    if (body.toLowerCase().includes('esp32-s2')) {
-      return 'ESP32, ESP32-S2';
+      await storage.updateDeviceLastSeen(deviceId);
+      
+      res.json({
+        success: true,
+        message: "Device activity updated"
+      });
+    } catch (error) {
+      console.error("Device ping error:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to update device activity"
+      });
     }
-    if (body.toLowerCase().includes('esp32-c3')) {
-      return 'ESP32, ESP32-S2, ESP32-C3';
+  });
+
+  // Deactivate device
+  app.delete("/api/devices/:deviceId", async (req, res) => {
+    try {
+      const { deviceId } = req.params;
+      const device = await storage.getDeviceById(deviceId);
+      
+      if (!device) {
+        return res.status(404).json({
+          success: false,
+          error: "Device not found"
+        });
+      }
+
+      await storage.deactivateDevice(deviceId);
+      
+      res.json({
+        success: true,
+        message: "Device deactivated successfully"
+      });
+    } catch (error) {
+      console.error("Device deactivation error:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to deactivate device"
+      });
     }
-    return 'ESP32';
-  }
+  });
+
+  // Health check endpoint
+  app.get("/api/health", (req, res) => {
+    res.json({
+      success: true,
+      status: "healthy",
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // Firmware file serving endpoint (for demo purposes)
+  app.get("/api/firmware/:filename", (req, res) => {
+    const { filename } = req.params;
+    
+    // Validate firmware filename
+    if (!filename.endsWith('.bin') || !filename.startsWith('sense360-')) {
+      return res.status(404).json({
+        success: false,
+        error: "Firmware file not found"
+      });
+    }
+
+    // For demo purposes, create a firmware-like binary file
+    // In production, this would serve actual ESP32 firmware files
+    const firmwareSize = 1024 * 1024; // 1MB demo firmware
+    const firmwareData = Buffer.alloc(firmwareSize);
+    
+    // Add some binary-like header data
+    firmwareData.writeUInt32LE(0xE9000000, 0); // ESP32 firmware magic number
+    firmwareData.writeUInt32LE(firmwareSize, 4); // File size
+    
+    // Add firmware version string at offset 16
+    const versionString = filename.replace('sense360-', '').replace('.bin', '');
+    firmwareData.write(versionString, 16);
+    
+    // Fill with some demo data pattern
+    for (let i = 32; i < firmwareSize; i += 4) {
+      firmwareData.writeUInt32LE(0x12345678 + (i % 0xFF), i);
+    }
+
+    res.set({
+      'Content-Type': 'application/octet-stream',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': firmwareData.length.toString(),
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    });
+    res.end(firmwareData);
+  });
+
+  const httpServer = createServer(app);
+
+  return httpServer;
 }
 
-export const firmwareManager = new FirmwareManager();
 
