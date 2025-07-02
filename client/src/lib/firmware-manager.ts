@@ -18,7 +18,7 @@ export class FirmwareManager {
           size: '1.2 MB',
           features: ['Wi-Fi Stability', 'Sensor Accuracy', 'Bug Fixes'],
           compatibility: 'ESP32, ESP32-S2, ESP32-C3',
-          downloadUrl: 'https://github.com/sense360/firmware/releases/download/v2.1.3/sense360-v2.1.3.bin'
+          downloadUrl: '/api/firmware/sense360-v2.1.3.bin'
         },
         {
           version: 'v2.1.2',
@@ -29,7 +29,7 @@ export class FirmwareManager {
           size: '1.1 MB',
           features: ['Power Optimization', 'OTA Updates', 'Performance'],
           compatibility: 'ESP32, ESP32-S2',
-          downloadUrl: 'https://github.com/sense360/firmware/releases/download/v2.1.2/sense360-v2.1.2.bin'
+          downloadUrl: '/api/firmware/sense360-v2.1.2.bin'
         },
         {
           version: 'v2.2.0-beta',
@@ -40,7 +40,7 @@ export class FirmwareManager {
           size: '1.3 MB',
           features: ['Bluetooth LE', 'Enhanced API', 'New Sensors'],
           compatibility: 'ESP32 only',
-          downloadUrl: 'https://github.com/sense360/firmware/releases/download/v2.2.0-beta/sense360-v2.2.0-beta.bin'
+          downloadUrl: '/api/firmware/sense360-v2.2.0-beta.bin'
         }
       ];
 
@@ -123,3 +123,4 @@ export class FirmwareManager {
 }
 
 export const firmwareManager = new FirmwareManager();
+
