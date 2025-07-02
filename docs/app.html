@@ -110,18 +110,29 @@
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200">
       <div class="max-w-6xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-        <div class="flex items-center space-x-4">
-          <!-- Logo -->
-          <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-            <svg class="text-white" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect width="16" height="10" x="2" y="3" rx="2" ry="2"/>
-              <circle cx="18" cy="8" r="3"/>
-              <path d="M6 21v-3a8 8 0 0 1 8-8h5"/>
-            </svg>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-4">
+            <!-- Logo -->
+            <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <svg class="text-white" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="16" height="10" x="2" y="3" rx="2" ry="2"/>
+                <circle cx="18" cy="8" r="3"/>
+                <path d="M6 21v-3a8 8 0 0 1 8-8h5"/>
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-2xl font-semibold text-gray-800">Sense360 Flash</h1>
+              <p class="text-sm text-gray-600">ESP32 Firmware Flashing Tool</p>
+            </div>
           </div>
           <div>
-            <h1 class="text-2xl font-semibold text-gray-800">Sense360 Flash</h1>
-            <p class="text-sm text-gray-600">ESP32 Firmware Flashing Tool</p>
+            <a href="admin.html" class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              </svg>
+              Admin Panel
+            </a>
           </div>
         </div>
       </div>
@@ -786,8 +797,10 @@
             // Get device identification from backend
             addLog(`MAC Address: ${macAddr}`, 'success');
             
+            let deviceInfo = null;
+            
             try {
-              // Try current host first, fallback to localhost:5000
+              // Try backend API first if available
               let response = await fetch('/api/devices/identify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -803,30 +816,75 @@
               }
               
               if (response.ok) {
-                const deviceInfo = await response.json();
-                deviceType = deviceInfo.deviceType;
-                chipName = deviceInfo.chipFamily;
+                deviceInfo = await response.json();
+                addLog(`Backend identification successful`, 'success');
+              }
+            } catch (error) {
+              addLog(`Backend unavailable: ${error.message}`, 'warning');
+            }
+            
+            // Use backend data if available, otherwise use local device detection
+            if (deviceInfo) {
+              deviceType = deviceInfo.deviceType;
+              chipName = deviceInfo.chipFamily;
+              
+              addLog(`Device Type: ${deviceType}`, 'success');
+              addLog(`Chip Family: ${chipName}`, 'info');
+              addLog(`Flash Size: ${deviceInfo.flashSize}`, 'info');
+              addLog(`Sensors: ${deviceInfo.sensors.join(', ')}`, 'info');
+              addLog(`Description: ${deviceInfo.description}`, 'debug');
+              
+              if (deviceInfo.isRegistered) {
+                addLog('Device is registered in system', 'success');
+              } else {
+                addLog('Device not registered - using generic configuration', 'warning');
+              }
+            } else {
+              // Check local admin registry first
+              const localDevices = JSON.parse(localStorage.getItem('sense360_devices') || '[]');
+              const localDevice = localDevices.find(d => d.macAddress === macAddr && d.isActive);
+              
+              if (localDevice) {
+                deviceType = localDevice.deviceType;
+                chipName = localDevice.chipFamily;
                 
                 addLog(`Device Type: ${deviceType}`, 'success');
                 addLog(`Chip Family: ${chipName}`, 'info');
-                addLog(`Flash Size: ${deviceInfo.flashSize}`, 'info');
-                addLog(`Sensors: ${deviceInfo.sensors.join(', ')}`, 'info');
-                addLog(`Description: ${deviceInfo.description}`, 'debug');
+                addLog(`Flash Size: ${localDevice.flashSize}`, 'info');
+                addLog(`Sensors: ${localDevice.sensors.join(', ')}`, 'info');
+                addLog(`Description: ${localDevice.description}`, 'debug');
+                addLog('Using local admin registry', 'info');
                 
-                if (deviceInfo.isRegistered) {
-                  addLog('Device is registered in system', 'success');
-                } else {
-                  addLog('Device not registered - using generic configuration', 'warning');
-                }
+                // Log access to local admin registry
+                const logs = JSON.parse(localStorage.getItem('sense360_logs') || '[]');
+                logs.unshift({
+                  id: Date.now(),
+                  macAddress: macAddr,
+                  accessType: 'connection',
+                  success: true,
+                  timestamp: new Date().toISOString(),
+                  details: 'Device connected via flashing tool'
+                });
+                localStorage.setItem('sense360_logs', JSON.stringify(logs.slice(0, 100)));
               } else {
-                throw new Error('Backend identification failed');
+                // Fallback to hardcoded device detection
+                const localDeviceInfo = identifyDeviceType(macAddr);
+                if (localDeviceInfo) {
+                  deviceType = localDeviceInfo.type;
+                  chipName = localDeviceInfo.chipFamily;
+                  
+                  addLog(`Device Type: ${deviceType}`, 'success');
+                  addLog(`Chip Family: ${chipName}`, 'info');
+                  addLog(`Flash Size: ${localDeviceInfo.flashSize}`, 'info');
+                  addLog(`Sensors: ${localDeviceInfo.sensors.join(', ')}`, 'info');
+                  addLog(`Description: ${localDeviceInfo.description}`, 'debug');
+                  addLog('Using local device database', 'info');
+                } else {
+                  deviceType = 'ESP32-Generic';
+                  chipName = 'ESP32';
+                  addLog('Using generic device configuration', 'info');
+                }
               }
-            } catch (error) {
-              addLog(`Backend identification error: ${error.message}`, 'warning');
-              // Fallback to generic device info
-              deviceType = 'ESP32-Generic';
-              chipName = 'ESP32';
-              addLog('Using generic device configuration', 'info');
             }
             
             addLog('Device ready for firmware flashing', 'success');
@@ -1015,26 +1073,36 @@
             addLog(`Fetching firmware from backend...`, 'info');
             
             try {
-              // Try the current host first, fallback to explicit port if needed
-              let response = await fetch('/api/firmware/releases');
-              if (!response.ok && response.status === 404) {
-                // Try the backend server directly
-                response = await fetch('http://localhost:5000/api/firmware/releases');
+              // Try backend API first if available
+              let firmwareUrl = null;
+              
+              try {
+                let response = await fetch('/api/firmware/releases');
+                if (!response.ok && response.status === 404) {
+                  response = await fetch('http://localhost:5000/api/firmware/releases');
+                }
+                
+                if (response.ok) {
+                  const releases = await response.json();
+                  const stableRelease = releases.find(r => r.status === 'stable');
+                  if (stableRelease) {
+                    firmwareUrl = stableRelease.downloadUrl;
+                    addLog(`Using backend firmware: ${stableRelease.title}`, 'info');
+                  }
+                }
+              } catch (backendError) {
+                addLog(`Backend unavailable: ${backendError.message}`, 'warning');
               }
-              if (!response.ok) {
-                throw new Error(`Backend fetch failed: ${response.status} ${response.statusText}`);
+              
+              // Fallback to direct GitHub release if backend unavailable
+              if (!firmwareUrl) {
+                firmwareUrl = 'https://github.com/wifispray/sense360-flash/releases/download/v1.0.0/air_quality_monitor.ota.bin';
+                addLog('Using direct GitHub firmware download', 'info');
               }
               
-              const releases = await response.json();
-              const stableRelease = releases.find(r => r.status === 'stable');
+              addLog(`Downloading firmware from: ${firmwareUrl.replace('https://github.com/', 'GitHub/')}`, 'info');
               
-              if (!stableRelease) {
-                throw new Error('No stable firmware release found');
-              }
-              
-              addLog(`Downloading firmware: ${stableRelease.title}`, 'info');
-              
-              const firmwareResponse = await fetch(stableRelease.downloadUrl);
+              const firmwareResponse = await fetch(firmwareUrl);
               if (!firmwareResponse.ok) {
                 throw new Error(`Download failed: ${firmwareResponse.status} ${firmwareResponse.statusText}`);
               }
