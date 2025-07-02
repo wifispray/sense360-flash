@@ -89,24 +89,30 @@ Sense360 Flash is a custom-branded, browser-based ESP32 firmware flashing tool b
 
 ## Deployment Strategy
 
-### Current Deployment
-- **Frontend**: Static site generation via Vite build
-- **Hosting**: Designed for GitHub Pages deployment
-- **Backend**: Express server with in-memory storage (development)
-- **Database**: Configured for PostgreSQL but using memory storage initially
+### GitHub Pages Deployment (Configured)
+- **Frontend**: Static site generation via Vite build to `dist/public`
+- **Hosting**: GitHub Pages with automated CI/CD pipeline
+- **Workflow**: GitHub Actions automatically builds and deploys on push to main branch
+- **Files**: `.github/workflows/deploy.yml` configured for automatic deployment
+
+### Deployment Files Created
+- `DEPLOYMENT_GUIDE.md` - Complete step-by-step deployment instructions
+- `README.md` - Project documentation and overview
+- `.github/workflows/deploy.yml` - GitHub Actions CI/CD pipeline
+- GitHub Pages configuration ready for public repositories
 
 ### Production Considerations
-- **Database Migration**: Switch from memory storage to PostgreSQL
-- **Firmware Management**: Integration with GitHub Releases API
-- **CDN Integration**: Static asset optimization
-- **Domain Configuration**: Custom domain setup for Shopify integration
+- **Static Hosting**: Optimized for GitHub Pages (no backend required for basic functionality)
+- **Firmware Management**: Uses GitHub Releases API for firmware distribution
+- **Custom Domain**: Configurable through GitHub Pages settings
+- **HTTPS**: Automatically provided by GitHub Pages (required for Web Serial API)
 
 ### Deployment Process
-1. Build frontend assets using `npm run build`
-2. Deploy static files to GitHub Pages or custom hosting
-3. Configure environment variables for database and GitHub API
-4. Set up PostgreSQL database with Drizzle migrations
-5. Deploy backend server to production environment
+1. Push code to GitHub repository
+2. GitHub Actions automatically builds the project
+3. Static files deployed to GitHub Pages
+4. Site available at `https://username.github.io/repository-name/`
+5. Firmware files managed through GitHub Releases
 
 ## User Preferences
 
