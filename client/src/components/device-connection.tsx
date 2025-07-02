@@ -23,13 +23,24 @@ export default function DeviceConnection({
   const { toast } = useToast();
 
   const handleConnect = async () => {
-    if (deviceInfo.connected) return;
+    console.log('🔌 Connect button clicked!');
+    console.log('📱 Device info:', deviceInfo);
+    console.log('🔄 Connection status:', connectionStatus);
+    
+    if (deviceInfo.connected) {
+      console.log('✅ Device already connected, skipping');
+      return;
+    }
 
+    console.log('🚀 Starting connection process...');
     setIsConnecting(true);
     onConnectionStatusChange('connecting');
 
     try {
+      console.log('📡 Calling espWebTools.connectDevice()...');
       const info = await espWebTools.connectDevice();
+      console.log('✅ Connection successful:', info);
+      
       onDeviceInfoChange(info);
       onConnectionStatusChange('connected');
       
@@ -38,7 +49,7 @@ export default function DeviceConnection({
         description: `ESP32 device detected and ready for flashing.`,
       });
     } catch (error) {
-      console.error('Connection failed:', error);
+      console.error('❌ Connection failed:', error);
       onConnectionStatusChange('error');
       onDeviceInfoChange({ connected: false });
       
@@ -48,6 +59,7 @@ export default function DeviceConnection({
         variant: "destructive",
       });
     } finally {
+      console.log('🏁 Connection process finished');
       setIsConnecting(false);
     }
   };
@@ -171,3 +183,4 @@ export default function DeviceConnection({
     </Card>
   );
 }
+
