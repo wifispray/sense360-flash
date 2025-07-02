@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import { join } from "path";
 import { storage } from "./storage";
 import { insertDeviceSchema, insertFirmwareReleaseSchema, insertDeviceAccessLogSchema, deviceIdentificationSchema } from "@shared/device-schema";
 import { z } from "zod";
@@ -155,10 +156,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Serve the standalone HTML flashing tool
   app.get("/flash", (req: Request, res: Response) => {
-    res.sendFile(require("path").join(process.cwd(), "docs", "app.html"));
+    try {
+      res.sendFile(join(process.cwd(), "docs", "app.html"));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to serve flashing tool" });
+    }
   });
 
   const httpServer = createServer(app);
   return httpServer;
 }
+
 
