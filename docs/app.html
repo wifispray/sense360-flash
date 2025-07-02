@@ -973,16 +973,30 @@
             firmwareData = await file.arrayBuffer();
             addLog(`Custom firmware loaded: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`, 'success');
           } else {
-            // Download from GitHub releases
-            const firmwareUrl = 'https://github.com/wifispray/sense360-flash/releases/download/v1.0.0/air_quality_monitor.ota.bin';
-            addLog(`Downloading firmware from GitHub...`, 'info');
+            // Use backend API for firmware download
+            addLog(`Fetching firmware from backend...`, 'info');
             
             try {
-              const response = await fetch(firmwareUrl);
+              const response = await fetch('/api/firmware/releases');
               if (!response.ok) {
-                throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+                throw new Error(`Backend fetch failed: ${response.status} ${response.statusText}`);
               }
-              firmwareData = await response.arrayBuffer();
+              
+              const releases = await response.json();
+              const stableRelease = releases.find(r => r.status === 'stable');
+              
+              if (!stableRelease) {
+                throw new Error('No stable firmware release found');
+              }
+              
+              addLog(`Downloading firmware: ${stableRelease.title}`, 'info');
+              
+              const firmwareResponse = await fetch(stableRelease.downloadUrl);
+              if (!firmwareResponse.ok) {
+                throw new Error(`Download failed: ${firmwareResponse.status} ${firmwareResponse.statusText}`);
+              }
+              
+              firmwareData = await firmwareResponse.arrayBuffer();
               addLog(`Firmware downloaded: ${(firmwareData.byteLength / 1024).toFixed(0)} KB`, 'success');
             } catch (error) {
               addLog(`Download error: ${error.message}`, 'error');
