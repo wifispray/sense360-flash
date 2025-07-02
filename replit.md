@@ -118,7 +118,20 @@ Sense360 Flash is a custom-branded, browser-based ESP32 firmware flashing tool b
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+- **July 02, 2025**: Device Management API Implementation
+  - Added secure backend API for device management
+  - MAC addresses stored privately, never exposed to end users
+  - Generated unique public device IDs for identification
+  - Created device registration, retrieval, and management endpoints
+  - Added device admin interface for viewing registered devices
+  - Updated frontend to use backend API instead of displaying MAC addresses
+  - Added navigation between Flash Tool and Device Admin pages
+  - Implemented privacy-first architecture for sensitive device information
+
 ## Changelog
 
 Changelog:
 - July 02, 2025. Initial setup
+- July 02, 2025. Device Management API with MAC address privacy
