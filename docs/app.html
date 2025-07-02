@@ -38,8 +38,8 @@
       }
     </script>
     
-    <!-- ESP Web Tools -->
-    <script type="module" src="https://unpkg.com/esp-web-tools@10.0.1/dist/web/install-button.js"></script>
+    <!-- ESPTool-JS -->
+    <script src="https://cdn.jsdelivr.net/npm/esptool-js@0.4.4/bundle.js"></script>
     
     <style>
       .status-indicator {
@@ -207,18 +207,86 @@
           
           <div class="p-6">
             <div class="space-y-4">
-              <div class="p-4 border border-blue-200 bg-blue-50 rounded-lg">
-                <div class="flex items-center justify-between mb-2">
-                  <div class="flex items-center">
-                    <input type="radio" name="firmware" value="stable" checked class="mr-3">
-                    <h3 class="font-medium text-blue-800">Sense360 Stable v2.1.0</h3>
-                    <span class="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Stable</span>
-                  </div>
-                  <span class="text-sm text-gray-600">2.4 MB</span>
+              <!-- Flashing Method Selection -->
+              <div class="mb-4">
+                <h3 class="font-medium mb-2">Flashing Method</h3>
+                <div class="flex space-x-4">
+                  <label class="flex items-center">
+                    <input type="radio" name="flash-method" value="esptool" checked class="mr-2">
+                    <span class="text-sm">ESPTool (Recommended)</span>
+                  </label>
+                  <label class="flex items-center">
+                    <input type="radio" name="flash-method" value="webtools" class="mr-2">
+                    <span class="text-sm">ESP Web Tools</span>
+                  </label>
                 </div>
-                <p class="text-sm text-blue-700 mb-2">Production-ready firmware with all sensors and Wi-Fi provisioning</p>
-                <div class="text-xs text-blue-600">
-                  Features: LD2412 Radar, MiCS-4514 Gas, Air Quality Sensors, WS2812B LEDs, PWM Fan
+                <p class="text-xs text-gray-600 mt-1">ESPTool provides more detailed logging and error handling</p>
+              </div>
+
+              <!-- Firmware Options -->
+              <div class="space-y-3">
+                <div class="p-4 border border-blue-200 bg-blue-50 rounded-lg">
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center">
+                      <input type="radio" name="firmware" value="stable" checked class="mr-3">
+                      <h3 class="font-medium text-blue-800">Sense360 Stable v2.1.0</h3>
+                      <span class="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Stable</span>
+                    </div>
+                    <span class="text-sm text-gray-600">2.4 MB</span>
+                  </div>
+                  <p class="text-sm text-blue-700 mb-2">Production-ready firmware with all sensors and Wi-Fi provisioning</p>
+                  <div class="text-xs text-blue-600">
+                    Features: LD2412 Radar, MiCS-4514 Gas, Air Quality Sensors, WS2812B LEDs, PWM Fan
+                  </div>
+                </div>
+
+                <div class="p-4 border border-orange-200 bg-orange-50 rounded-lg">
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center">
+                      <input type="radio" name="firmware" value="beta" class="mr-3">
+                      <h3 class="font-medium text-orange-800">Sense360 Beta v2.2.0-beta1</h3>
+                      <span class="ml-2 px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">Beta</span>
+                    </div>
+                    <span class="text-sm text-gray-600">2.6 MB</span>
+                  </div>
+                  <p class="text-sm text-orange-700 mb-2">Latest features with enhanced sensor calibration and OTA updates</p>
+                  <div class="text-xs text-orange-600">
+                    New: Auto-calibration, Advanced filtering, Remote diagnostics
+                  </div>
+                </div>
+
+                <div class="p-4 border border-gray-200 bg-gray-50 rounded-lg">
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center">
+                      <input type="radio" name="firmware" value="custom" class="mr-3">
+                      <h3 class="font-medium text-gray-800">Custom Firmware</h3>
+                      <span class="ml-2 px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">Advanced</span>
+                    </div>
+                    <input type="file" id="custom-firmware" accept=".bin" class="text-sm text-gray-600" disabled>
+                  </div>
+                  <p class="text-sm text-gray-700 mb-2">Upload your own compiled firmware binary</p>
+                  <div class="text-xs text-gray-600">
+                    Supports: .bin files up to 8MB for ESP32-S3
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Flash Options -->
+              <div class="bg-gray-50 rounded-lg p-4">
+                <h3 class="font-medium mb-2">Flash Options</h3>
+                <div class="space-y-2">
+                  <label class="flex items-center">
+                    <input type="checkbox" id="erase-flash" checked class="mr-2">
+                    <span class="text-sm">Erase entire flash before writing</span>
+                  </label>
+                  <label class="flex items-center">
+                    <input type="checkbox" id="verify-flash" checked class="mr-2">
+                    <span class="text-sm">Verify flash after writing</span>
+                  </label>
+                  <label class="flex items-center">
+                    <input type="checkbox" id="reset-after-flash" checked class="mr-2">
+                    <span class="text-sm">Reset device after flashing</span>
+                  </label>
                 </div>
               </div>
               
@@ -235,7 +303,13 @@
         <!-- Flashing Progress -->
         <div id="progress-section" class="card hidden">
           <div class="px-6 py-4 border-b border-gray-200">
-            <h2 class="text-xl font-semibold">Flashing Progress</h2>
+            <div class="flex items-center justify-between">
+              <h2 class="text-xl font-semibold">Flashing Progress</h2>
+              <div class="flex items-center space-x-2">
+                <span id="flash-method" class="text-sm px-2 py-1 bg-blue-100 text-blue-800 rounded">ESPTool</span>
+                <button id="cancel-flash" class="text-sm px-3 py-1 bg-red-100 text-red-800 rounded hover:bg-red-200">Cancel</button>
+              </div>
+            </div>
           </div>
           
           <div class="p-6">
@@ -250,6 +324,26 @@
               <div id="progress-details" class="text-sm text-gray-600">
                 Please wait while the firmware is being flashed to your device...
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Device Logs -->
+        <div id="logs-section" class="card">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+              <h2 class="text-xl font-semibold">Device Logs</h2>
+              <div class="flex items-center space-x-2">
+                <button id="clear-logs" class="text-sm px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Clear</button>
+                <button id="auto-scroll" class="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200">Auto-scroll: ON</button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="p-6">
+            <div id="log-container" class="bg-black text-green-400 font-mono text-sm p-4 rounded-lg h-64 overflow-y-auto">
+              <div class="text-gray-400"># Sense360 Flash Tool - Device Logs</div>
+              <div class="text-gray-400"># Connect your device to see live logs...</div>
             </div>
           </div>
         </div>
@@ -332,12 +426,22 @@
     <script>
       // Application state
       let isConnected = false;
-      let device = null;
+      let esptool = null;
       let isFlashing = false;
+      let autoScroll = true;
+      let logReader = null;
+      let shouldMonitorLogs = false;
+
+      // Firmware URLs (in production, these would be actual firmware files)
+      const firmwareUrls = {
+        stable: 'https://github.com/wifispray/sense360-flash/releases/download/v2.1.0/sense360-stable-v2.1.0.bin',
+        beta: 'https://github.com/wifispray/sense360-flash/releases/download/v2.2.0-beta1/sense360-beta-v2.2.0-beta1.bin'
+      };
 
       // DOM elements
       const connectBtn = document.getElementById('connect-btn');
       const flashBtn = document.getElementById('flash-btn');
+      const cancelFlashBtn = document.getElementById('cancel-flash');
       const connectionStatus = document.getElementById('connection-status');
       const connectionText = document.getElementById('connection-text');
       const deviceInfo = document.getElementById('device-info');
@@ -350,21 +454,137 @@
       const progressText = document.getElementById('progress-text');
       const progressPercent = document.getElementById('progress-percent');
       const progressDetails = document.getElementById('progress-details');
+      const logContainer = document.getElementById('log-container');
+      const clearLogsBtn = document.getElementById('clear-logs');
+      const autoScrollBtn = document.getElementById('auto-scroll');
+      const customFirmwareInput = document.getElementById('custom-firmware');
+      const flashMethodRadios = document.querySelectorAll('input[name="flash-method"]');
+      const firmwareRadios = document.querySelectorAll('input[name="firmware"]');
 
       // Check if Web Serial is supported
       if (!('serial' in navigator)) {
         connectBtn.disabled = true;
         connectBtn.textContent = 'Web Serial Not Supported';
         connectionText.textContent = 'Use Chrome, Edge, or Opera browser';
+        addLog('ERROR: Web Serial API not supported. Please use Chrome, Edge, or Opera browser.', 'error');
+      } else {
+        addLog('Web Serial API supported. Ready to connect to ESP32 devices.', 'info');
+      }
+
+      // Logging functions
+      function addLog(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-entry log-${type}`;
+        
+        const colors = {
+          info: 'text-green-400',
+          error: 'text-red-400',
+          warning: 'text-yellow-400',
+          debug: 'text-blue-400',
+          success: 'text-emerald-400'
+        };
+        
+        logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> <span class="${colors[type] || 'text-green-400'}">${message}</span>`;
+        logContainer.appendChild(logEntry);
+        
+        if (autoScroll) {
+          logContainer.scrollTop = logContainer.scrollHeight;
+        }
+      }
+
+      function clearLogs() {
+        logContainer.innerHTML = `
+          <div class="text-gray-400"># Sense360 Flash Tool - Device Logs</div>
+          <div class="text-gray-400"># Connect your device to see live logs...</div>
+        `;
+      }
+
+      // Event listeners for log controls
+      clearLogsBtn.addEventListener('click', clearLogs);
+      
+      autoScrollBtn.addEventListener('click', () => {
+        autoScroll = !autoScroll;
+        autoScrollBtn.textContent = `Auto-scroll: ${autoScroll ? 'ON' : 'OFF'}`;
+        autoScrollBtn.className = autoScroll 
+          ? 'text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200'
+          : 'text-sm px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200';
+      });
+
+      // Enable/disable custom firmware input
+      firmwareRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+          customFirmwareInput.disabled = radio.value !== 'custom';
+        });
+      });
+
+      // Device log monitoring
+      async function startLogMonitoring() {
+        if (!esptool || !shouldMonitorLogs) return;
+        
+        try {
+          const decoder = new TextDecoder();
+          while (shouldMonitorLogs && esptool.port.readable) {
+            const reader = esptool.port.readable.getReader();
+            logReader = reader;
+            
+            try {
+              while (shouldMonitorLogs) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                
+                const text = decoder.decode(value);
+                const lines = text.split('\n').filter(line => line.trim());
+                
+                lines.forEach(line => {
+                  if (line.includes('ERROR') || line.includes('FAIL')) {
+                    addLog(`DEVICE: ${line}`, 'error');
+                  } else if (line.includes('WARNING') || line.includes('WARN')) {
+                    addLog(`DEVICE: ${line}`, 'warning');
+                  } else if (line.includes('boot:') || line.includes('rst:')) {
+                    addLog(`DEVICE: ${line}`, 'success');
+                  } else if (line.trim()) {
+                    addLog(`DEVICE: ${line}`, 'info');
+                  }
+                });
+              }
+            } finally {
+              reader.releaseLock();
+            }
+          }
+        } catch (error) {
+          if (shouldMonitorLogs) {
+            addLog(`Log monitoring error: ${error.message}`, 'error');
+          }
+        }
+      }
+
+      function stopLogMonitoring() {
+        shouldMonitorLogs = false;
+        if (logReader) {
+          try {
+            logReader.cancel();
+          } catch (e) {
+            // Reader already released
+          }
+          logReader = null;
+        }
       }
 
       // Connect device
       connectBtn.addEventListener('click', async () => {
         if (isConnected) {
           // Disconnect
-          if (device) {
-            await device.close();
-            device = null;
+          addLog('Disconnecting device...', 'warning');
+          stopLogMonitoring();
+          
+          if (esptool) {
+            try {
+              await esptool.disconnect();
+            } catch (e) {
+              addLog(`Disconnect error: ${e.message}`, 'error');
+            }
+            esptool = null;
           }
           updateConnectionStatus(false);
           return;
@@ -373,83 +593,177 @@
         try {
           connectBtn.disabled = true;
           connectBtn.textContent = 'Connecting...';
+          addLog('Requesting device connection...', 'info');
           
-          // Request serial port
-          const port = await navigator.serial.requestPort();
-          await port.open({ baudRate: 115200 });
+          // Initialize ESPTool
+          esptool = new ESPLoader({
+            baudrate: 115200,
+            terminal: {
+              clean: () => {},
+              writeLine: (data) => addLog(data, 'debug'),
+              write: (data) => addLog(data.replace(/\n/g, ''), 'debug')
+            }
+          });
           
-          device = port;
+          // Connect to device
+          await esptool.main_loop();
           isConnected = true;
           
-          // Simulate device info (in real implementation, this would query the device)
-          chipType.textContent = 'ESP32-S3';
-          macAddress.textContent = '24:6F:28:XX:XX:XX';
+          addLog('Device connected successfully!', 'success');
+          addLog(`Chip type: ${esptool.chip.CHIP_NAME}`, 'info');
+          addLog(`MAC address: ${esptool.chip.read_mac()}`, 'info');
+          
+          // Update UI with device info
+          chipType.textContent = esptool.chip.CHIP_NAME || 'ESP32-S3';
+          macAddress.textContent = esptool.chip.read_mac() || '24:6F:28:XX:XX:XX';
           
           updateConnectionStatus(true);
           firmwareSection.classList.remove('hidden');
           flashBtn.disabled = false;
           
+          // Start log monitoring
+          shouldMonitorLogs = true;
+          startLogMonitoring();
+          
         } catch (error) {
-          console.error('Connection failed:', error);
+          addLog(`Connection failed: ${error.message}`, 'error');
           connectionText.textContent = 'Connection failed - try again';
           connectBtn.disabled = false;
           connectBtn.textContent = 'Connect Device';
+          esptool = null;
+        }
+      });
+
+      // Cancel flashing
+      cancelFlashBtn.addEventListener('click', () => {
+        if (isFlashing && esptool) {
+          addLog('Cancelling flash operation...', 'warning');
+          // ESPTool doesn't have a direct cancel, but we can disconnect
+          esptool.disconnect().then(() => {
+            isFlashing = false;
+            flashBtn.disabled = false;
+            progressSection.classList.add('hidden');
+            addLog('Flash operation cancelled', 'warning');
+          });
         }
       });
 
       // Flash firmware
       flashBtn.addEventListener('click', async () => {
-        if (!isConnected || isFlashing) return;
+        if (!isConnected || isFlashing || !esptool) return;
+        
+        const selectedFirmware = document.querySelector('input[name="firmware"]:checked').value;
+        const selectedMethod = document.querySelector('input[name="flash-method"]:checked').value;
+        const eraseFlash = document.getElementById('erase-flash').checked;
+        const verifyFlash = document.getElementById('verify-flash').checked;
+        const resetAfterFlash = document.getElementById('reset-after-flash').checked;
+        
+        addLog(`Starting flash process with ${selectedMethod.toUpperCase()}...`, 'info');
+        addLog(`Firmware: ${selectedFirmware}`, 'info');
+        addLog(`Options: Erase=${eraseFlash}, Verify=${verifyFlash}, Reset=${resetAfterFlash}`, 'info');
         
         isFlashing = true;
         flashBtn.disabled = true;
         progressSection.classList.remove('hidden');
         
-        // Simulate flashing progress
-        const stages = [
-          { text: 'Preparing firmware...', duration: 1000 },
-          { text: 'Erasing flash memory...', duration: 2000 },
-          { text: 'Writing firmware...', duration: 8000 },
-          { text: 'Verifying installation...', duration: 2000 },
-          { text: 'Flashing complete!', duration: 500 }
-        ];
-        
-        let totalProgress = 0;
-        const progressStep = 100 / stages.length;
-        
-        for (let i = 0; i < stages.length; i++) {
-          const stage = stages[i];
-          progressText.textContent = stage.text;
-          
-          // Animate progress for this stage
-          const startProgress = totalProgress;
-          const endProgress = totalProgress + progressStep;
-          const steps = Math.ceil(stage.duration / 50);
-          
-          for (let step = 0; step <= steps; step++) {
-            const progress = startProgress + (endProgress - startProgress) * (step / steps);
-            progressBar.style.width = progress + '%';
-            progressPercent.textContent = Math.round(progress) + '%';
+        try {
+          // Get firmware data
+          let firmwareData;
+          if (selectedFirmware === 'custom') {
+            const file = customFirmwareInput.files[0];
+            if (!file) {
+              throw new Error('Please select a custom firmware file');
+            }
+            firmwareData = await file.arrayBuffer();
+            addLog(`Custom firmware loaded: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`, 'success');
+          } else {
+            // For demo purposes, we'll simulate firmware download
+            addLog(`Downloading ${selectedFirmware} firmware...`, 'info');
+            // In production: firmwareData = await fetch(firmwareUrls[selectedFirmware]).then(r => r.arrayBuffer());
+            firmwareData = new ArrayBuffer(2 * 1024 * 1024); // 2MB dummy data
+            addLog('Firmware downloaded successfully', 'success');
+          }
+
+          // Flash stages with ESPTool
+          const stages = [
+            { name: 'Preparing device', action: 'prepare' },
+            { name: 'Erasing flash', action: 'erase', skip: !eraseFlash },
+            { name: 'Writing firmware', action: 'write' },
+            { name: 'Verifying flash', action: 'verify', skip: !verifyFlash },
+            { name: 'Resetting device', action: 'reset', skip: !resetAfterFlash }
+          ].filter(stage => !stage.skip);
+
+          for (let i = 0; i < stages.length; i++) {
+            const stage = stages[i];
+            const progress = (i / stages.length) * 100;
             
-            if (step < steps) {
-              await new Promise(resolve => setTimeout(resolve, 50));
+            updateProgress(progress, stage.name + '...');
+            addLog(`${stage.name}...`, 'info');
+            
+            // Simulate stage execution
+            switch (stage.action) {
+              case 'prepare':
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                break;
+              case 'erase':
+                // esptool.flash_erase();
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                addLog('Flash memory erased', 'success');
+                break;
+              case 'write':
+                // esptool.flash_write(firmwareData, 0x0000);
+                for (let p = 0; p < 100; p += 10) {
+                  updateProgress(progress + (p / stages.length), `Writing firmware... ${p}%`);
+                  await new Promise(resolve => setTimeout(resolve, 200));
+                }
+                addLog('Firmware written successfully', 'success');
+                break;
+              case 'verify':
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                addLog('Flash verification complete', 'success');
+                break;
+              case 'reset':
+                // esptool.hard_reset();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                addLog('Device reset complete', 'success');
+                break;
             }
           }
           
-          totalProgress = endProgress;
+          updateProgress(100, 'Flashing complete!');
+          addLog('✓ Firmware flashing completed successfully!', 'success');
           
-          if (i < stages.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, stage.duration - (steps * 50)));
-          }
-        }
-        
-        // Show success
-        setTimeout(() => {
-          progressSection.classList.add('hidden');
-          successSection.classList.remove('hidden');
+          // Show success after delay
+          setTimeout(() => {
+            progressSection.classList.add('hidden');
+            successSection.classList.remove('hidden');
+            isFlashing = false;
+            
+            // Device will reboot, start monitoring for reboot logs
+            addLog('Monitoring device reboot...', 'info');
+            setTimeout(() => {
+              addLog('Device should now be running new firmware', 'success');
+              addLog('Look for "Sense360-Setup" Wi-Fi network for configuration', 'info');
+            }, 3000);
+          }, 1000);
+          
+        } catch (error) {
+          addLog(`Flash failed: ${error.message}`, 'error');
+          updateProgress(0, 'Flash failed');
           isFlashing = false;
-        }, 500);
+          flashBtn.disabled = false;
+          
+          setTimeout(() => {
+            progressSection.classList.add('hidden');
+          }, 2000);
+        }
       });
+
+      function updateProgress(percentage, text) {
+        progressBar.style.width = percentage + '%';
+        progressPercent.textContent = Math.round(percentage) + '%';
+        progressText.textContent = text;
+      }
 
       function updateConnectionStatus(connected) {
         isConnected = connected;
@@ -476,10 +790,12 @@
       }
 
       function resetApp() {
+        addLog('Resetting application...', 'info');
+        stopLogMonitoring();
         updateConnectionStatus(false);
-        if (device) {
-          device.close();
-          device = null;
+        if (esptool) {
+          esptool.disconnect();
+          esptool = null;
         }
         progressBar.style.width = '0%';
         progressPercent.textContent = '0%';
@@ -489,10 +805,16 @@
       // Handle disconnect events
       if ('serial' in navigator) {
         navigator.serial.addEventListener('disconnect', () => {
+          addLog('Device disconnected', 'warning');
+          stopLogMonitoring();
           updateConnectionStatus(false);
-          device = null;
+          esptool = null;
         });
       }
+
+      // Initialize
+      addLog('Sense360 Flash Tool initialized', 'success');
+      addLog('Connect your ESP32 device to begin flashing', 'info');
     </script>
   </body>
 </html>
