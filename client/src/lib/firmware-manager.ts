@@ -18,7 +18,7 @@ export class FirmwareManager {
           size: '913 KB',
           features: ['Factory default', 'Air Quality', 'ESP32-S3'],
           compatibility: 'ESP32-S3',
-          downloadUrl: 'https://github.com/wifispray/sense360-flash/releases/download/v1.0.0/air_quality_monitor.factory.bin'
+          downloadUrl: '/api/firmware/air_quality_monitor.factory.bin'
         }
       ];
 
@@ -101,3 +101,4 @@ export class FirmwareManager {
 }
 
 export const firmwareManager = new FirmwareManager();
+
