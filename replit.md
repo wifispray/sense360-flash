@@ -120,6 +120,16 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+- **July 03, 2025**: Real Firmware Integration & CORS Fix
+  - Updated FirmwareManager to use real v1.0.0 firmware from GitHub releases
+  - Replaced demo firmware with actual air_quality_monitor.factory.bin (913 KB)
+  - Implemented backend proxy for local development with CORS headers
+  - Added automatic environment detection for GitHub Pages vs local deployment
+  - Configured CORS proxy (allorigins.win) for GitHub Pages static deployment
+  - Fixed firmware download URL to use correct filename (factory.bin not ota.bin)
+  - Rebuilt and updated GitHub Pages deployment with working firmware downloads
+  - Optimized for ESP32-S3 compatibility with factory default features
+
 - **July 02, 2025**: Device Management API Implementation
   - Added secure backend API for device management
   - MAC addresses stored privately, never exposed to end users
