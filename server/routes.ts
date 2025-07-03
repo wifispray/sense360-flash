@@ -140,6 +140,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // CORS preflight for firmware endpoint
+  app.options("/api/firmware/:filename", (req, res) => {
+    res.set({
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, X-Requested-With'
+    });
+    res.status(204).end();
+  });
+
+  // Firmware file serving endpoint - proxies GitHub releases with CORS headers
+  app.get("/api/firmware/:filename", async (req, res) => {
+    const { filename } = req.params;
+    
+    // Validate firmware filename
+    if (!filename.endsWith('.bin')) {
+      return res.status(404).json({
+        success: false,
+        error: "Invalid firmware file"
+      });
+    }
+
+    try {
+      // Map firmware filenames to GitHub release URLs
+      const firmwareUrls: Record<string, string> = {
+        'air_quality_monitor.factory.bin': 'https://github.com/wifispray/sense360-flash/releases/download/v1.0.0/air_quality_monitor.factory.bin'
+      };
+      
+      const githubUrl = firmwareUrls[filename];
+      if (!githubUrl) {
+        return res.status(404).json({
+          success: false,
+          error: "Firmware file not found"
+        });
+      }
+
+      // Fetch firmware from GitHub
+      const response = await fetch(githubUrl);
+      if (!response.ok) {
+        throw new Error(`GitHub fetch failed: ${response.status} ${response.statusText}`);
+      }
+
+      const firmwareData = await response.arrayBuffer();
+      const buffer = Buffer.from(firmwareData);
+
+      // Set CORS headers and appropriate content type
+      res.set({
+        'Content-Type': 'application/octet-stream',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Length': buffer.length.toString(),
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type'
+      });
+
+      res.end(buffer);
+    } catch (error) {
+      console.error('Firmware fetch error:', error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch firmware file"
+      });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
