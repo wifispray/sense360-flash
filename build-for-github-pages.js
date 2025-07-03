@@ -1,22 +1,26 @@
 #!/usr/bin/env node
 
-// Simple build script for GitHub Pages deployment
+// GitHub Pages build script - frontend only
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
-console.log('Building Sense360 Flash for GitHub Pages...');
+console.log('Building Sense360 Flash for GitHub Pages (static only)...');
 
 try {
-  // Build the frontend
+  // Build the frontend from client directory
   console.log('Building frontend...');
+  process.chdir('client');
   execSync('vite build', { stdio: 'inherit' });
+  process.chdir('..');
   
-  // Copy built files to root for GitHub Pages
+  // Copy built files to docs for GitHub Pages
   console.log('Preparing files for GitHub Pages...');
   
-  // Create docs directory (GitHub Pages can serve from /docs)
-  if (!fs.existsSync('docs')) {
+  // Clean and create docs directory
+  if (fs.existsSync('docs')) {
+    execSync('rm -rf docs/*', { stdio: 'inherit' });
+  } else {
     fs.mkdirSync('docs');
   }
   
@@ -29,8 +33,9 @@ try {
     process.exit(1);
   }
   
-  console.log('Build complete! GitHub Pages can now serve from /docs directory');
-  console.log('Go to repository Settings > Pages and set source to "Deploy from a branch" with "main" branch and "/docs" folder');
+  console.log('✅ GitHub Pages build complete!');
+  console.log('📁 Static files are in /docs directory');
+  console.log('🚀 Ready for GitHub Pages deployment');
   
 } catch (error) {
   console.error('Build failed:', error.message);

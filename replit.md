@@ -120,15 +120,15 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-- **July 03, 2025**: Real Firmware Integration & CORS Fix
-  - Updated FirmwareManager to use real v1.0.0 firmware from GitHub releases
-  - Replaced demo firmware with actual air_quality_monitor.factory.bin (913 KB)
-  - Implemented backend proxy for local development with CORS headers
-  - Added automatic environment detection for GitHub Pages vs local deployment
-  - Configured CORS proxy (allorigins.win) for GitHub Pages static deployment
+- **July 03, 2025**: GitHub Pages Only Architecture
+  - Removed local development setup and backend server completely
+  - Converted to pure static GitHub Pages deployment
+  - Updated FirmwareManager to use CORS proxy (allorigins.win) for all deployments
+  - Replaced backend device API with localStorage-based device management
+  - Simplified build process to client-only static site generation
   - Fixed firmware download URL to use correct filename (factory.bin not ota.bin)
-  - Rebuilt and updated GitHub Pages deployment with working firmware downloads
   - Optimized for ESP32-S3 compatibility with factory default features
+  - Real firmware integration with 913 KB air_quality_monitor.factory.bin
 
 - **July 02, 2025**: Device Management API Implementation
   - Added secure backend API for device management
